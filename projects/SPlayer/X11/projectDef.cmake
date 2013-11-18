@@ -39,7 +39,8 @@ target_link_libraries(${PROJECT_NAME}
     m
     dl
     z
-    asound
+    pulse
+    m
     ${CMAKE_CURRENT_SOURCE_DIR}/../../libffmpeg/libxplayer.a
     ${CMAKE_CURRENT_SOURCE_DIR}/../../libffmpeg/lib/libavformat.a
     ${CMAKE_CURRENT_SOURCE_DIR}/../../libffmpeg/lib/libavfilter.a
@@ -47,6 +48,5 @@ target_link_libraries(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/../../libffmpeg/lib/libswresample.a
     ${CMAKE_CURRENT_SOURCE_DIR}/../../libffmpeg/lib/libavutil.a
     ${CMAKE_CURRENT_SOURCE_DIR}/../../libffmpeg/lib/libswscale.a
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../sipalsa/libsipalsa.a
     )
 

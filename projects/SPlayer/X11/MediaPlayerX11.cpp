@@ -16,12 +16,15 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
+#include <pulse/pulseaudio.h>
+
 #include "libxplayer.h"
-#include "libsipalsa.h"
 
 #include "debug.h"
 
 //#define DEBUGPRINT      1
+
+#define PULSE_CLIENT_NAME       "SPlayerPlugin"
 
 struct PlayerContext;
 
@@ -46,7 +49,16 @@ typedef struct {
 } video_priv_t;
 
 typedef struct {
-    int run;
+    int         run;
+    int         pulseok;
+    char*       device;
+
+    int         success;
+
+    struct      pa_stream *stream;
+    struct      pa_context *context;
+    struct      pa_threaded_mainloop *mainloop;
+
 } audio_priv_t;
 
 
@@ -484,6 +496,8 @@ double MediaPlayer::getmovielength()
     return xplayer_API_getmovielength(slotId);
 }
 
+
+
 void MediaPlayer::StaticInitialize() {
     audio_priv = (audio_priv_t*)calloc(1,sizeof(video_priv_t));
     pthread_create(&audio_thread, NULL, audio_process, audio_priv);
@@ -508,6 +522,191 @@ void MediaPlayer::StaticDeinitialize() {
 }
 
 extern "C" {
+
+    static int waitop(audio_priv_t* apriv, pa_operation *op) {
+        pa_operation_state_t state;
+        if (!op) {
+            pa_threaded_mainloop_unlock(apriv->mainloop);
+            return 0;
+        }
+        state = pa_operation_get_state(op);
+        while (state == PA_OPERATION_RUNNING) {
+            pa_threaded_mainloop_wait(apriv->mainloop);
+            state = pa_operation_get_state(op);
+        }
+        pa_operation_unref(op);
+        pa_threaded_mainloop_unlock(apriv->mainloop);
+        return state == PA_OPERATION_DONE;
+    }
+
+    static void context_state_cb(pa_context *c, void *userdata) {
+        audio_priv_t* apriv = (audio_priv_t*)userdata;
+        switch (pa_context_get_state(c)) {
+            case PA_CONTEXT_READY:
+            case PA_CONTEXT_TERMINATED:
+            case PA_CONTEXT_FAILED:
+                pa_threaded_mainloop_signal(apriv->mainloop, 0);
+                break;
+            default:
+                break;
+        }
+    }
+
+    static void stream_state_cb(pa_stream *s, void *userdata) {
+        audio_priv_t* apriv = (audio_priv_t*)userdata;
+        switch (pa_stream_get_state(s)) {
+            case PA_STREAM_READY:
+            case PA_STREAM_FAILED:
+            case PA_STREAM_TERMINATED:
+                pa_threaded_mainloop_signal(apriv->mainloop, 0);
+                break;
+            default:
+                break;
+        }
+    }
+
+    static void stream_request_cb(pa_stream *s, size_t length, void *userdata) {
+        audio_priv_t* apriv = (audio_priv_t*)userdata;
+        pa_threaded_mainloop_signal(apriv->mainloop, 0);
+    }
+
+    static void stream_latency_update_cb(pa_stream *s, void *userdata) {
+        audio_priv_t* apriv = (audio_priv_t*)userdata;
+        pa_threaded_mainloop_signal(apriv->mainloop, 0);
+    }
+
+    static void success_cb(pa_stream *s, int success, void *userdata) {
+        audio_priv_t* apriv = (audio_priv_t*)userdata;
+        apriv->success = success;
+        pa_threaded_mainloop_signal(apriv->mainloop, 0);
+    }
+
+    static void pulse_uninit(audio_priv_t* apriv, int immed) {
+        if (apriv->stream && !immed) {
+                pa_threaded_mainloop_lock(apriv->mainloop);
+                waitop(apriv, pa_stream_drain(apriv->stream, success_cb, apriv));
+        }
+
+        if (apriv->mainloop)
+            pa_threaded_mainloop_stop(apriv->mainloop);
+
+        if (apriv->stream) {
+            pa_stream_disconnect(apriv->stream);
+            pa_stream_unref(apriv->stream);
+            apriv->stream = NULL;
+        }
+
+        if (apriv->context) {
+            pa_context_disconnect(apriv->context);
+            pa_context_unref(apriv->context);
+            apriv->context = NULL;
+        }
+
+        if (apriv->mainloop) {
+            pa_threaded_mainloop_free(apriv->mainloop);
+            apriv->mainloop = NULL;
+        }
+    }
+
+    static int pulse_init(audio_priv_t* apriv) {
+        struct pa_sample_spec ss;
+        struct pa_channel_map map;
+        char *devarg = NULL;
+        char *host = NULL;
+        char *sink = NULL;
+        const char *version = pa_get_library_version();
+
+        if (apriv->device && strcmp(apriv->device,"default")) {
+            devarg = strdup(apriv->device);
+            sink = strchr(devarg, ':');
+            if (sink) *sink++ = 0;
+            if (devarg[0]) host = devarg;
+        }
+
+        ss.channels = xplayer_API_getaudio_channels();
+        ss.rate = xplayer_API_getaudio_rate();
+        ss.format = PA_SAMPLE_S16LE;
+
+        if (!pa_sample_spec_valid(&ss)) {
+            fprintf(stderr, "AO: [pulse] Invalid sample spec\n");
+            goto fail;
+        }
+
+        pa_channel_map_init_auto(&map, ss.channels, PA_CHANNEL_MAP_ALSA);
+
+        if (!(apriv->mainloop = pa_threaded_mainloop_new())) {
+            fprintf(stderr, "AO: [pulse] Failed to allocate main loop\n");
+            goto fail;
+        }
+
+        if (!(apriv->context = pa_context_new(pa_threaded_mainloop_get_api(apriv->mainloop), PULSE_CLIENT_NAME))) {
+            fprintf(stderr, "AO: [pulse] Failed to allocate context\n");
+            goto fail;
+        }
+
+        pa_context_set_state_callback(apriv->context, context_state_cb, apriv);
+
+        if (pa_context_connect(apriv->context, host, PA_CONTEXT_NOFLAGS, NULL) < 0)
+            goto fail;
+
+        pa_threaded_mainloop_lock(apriv->mainloop);
+
+        if (pa_threaded_mainloop_start(apriv->mainloop) < 0)
+            goto unlock_and_fail;
+
+        /* Wait until the context is ready */
+        pa_threaded_mainloop_wait(apriv->mainloop);
+
+        if (pa_context_get_state(apriv->context) != PA_CONTEXT_READY)
+            goto unlock_and_fail;
+
+        if (!(apriv->stream = pa_stream_new(apriv->context, "audio stream", &ss, &map)))
+            goto unlock_and_fail;
+
+        pa_stream_set_state_callback(apriv->stream, stream_state_cb, apriv);
+        pa_stream_set_write_callback(apriv->stream, stream_request_cb, apriv);
+        pa_stream_set_latency_update_callback(apriv->stream, stream_latency_update_cb, apriv);
+
+        if (pa_stream_connect_playback(apriv->stream, sink, NULL, (pa_stream_flags_t)(PA_STREAM_INTERPOLATE_TIMING | PA_STREAM_AUTO_TIMING_UPDATE), NULL, NULL) < 0)
+            goto unlock_and_fail;
+
+        /* Wait until the stream is ready */
+        pa_threaded_mainloop_wait(apriv->mainloop);
+
+        if (pa_stream_get_state(apriv->stream) != PA_STREAM_READY)
+            goto unlock_and_fail;
+
+        pa_threaded_mainloop_unlock(apriv->mainloop);
+
+        free(devarg);
+        return 1;
+
+unlock_and_fail:
+
+        if (apriv->mainloop)
+            pa_threaded_mainloop_unlock(apriv->mainloop);
+
+fail:
+        if (apriv->context)
+            fprintf(stderr,"AI: [pulse] %s: %s\n","Init failed", pa_strerror(pa_context_errno(apriv->context)));
+        free(devarg);
+        pulse_uninit(apriv, 1);
+        return 0;
+    }
+
+    static int pulse_play(audio_priv_t* apriv, void* data, int len) {
+
+        if(!apriv->mainloop)
+            return -1;
+
+        pa_threaded_mainloop_lock(apriv->mainloop);
+        if (pa_stream_write(apriv->stream, data, len, NULL, 0, PA_SEEK_RELATIVE) < 0) {
+            fprintf(stderr,"AI: [pulse] %s: %s\n","pa_stream_write() failed", pa_strerror(pa_context_errno(apriv->context)));
+            len = -1;
+        }
+        pa_threaded_mainloop_unlock(apriv->mainloop);
+        return len;
+    }
 
     void* video_process(void * data) {
         video_priv_t* priv = (video_priv_t*)data;
@@ -827,46 +1026,40 @@ fprintf(stderr,"Load texture. slot: %d img: %p\n",priv->slot,img);
 
 
     void* audio_process(void * data) {
-        audio_priv_t* priv = (audio_priv_t*)data;
+        audio_priv_t* apriv = (audio_priv_t*)data;
         char abuffer[0x10000];
         int alen = 0;
         int plen = 0;
-        int rate = xplayer_API_getaudio_rate();
-        int channels = xplayer_API_getaudio_channels();
-        static void* sipalsa = NULL;
+        int pulseok;
 
-        alen=0;
-
-        if(!sipalsa) {
-            sipalsa=sipalsa_open("hw:0", rate , channels, 0, 100, 100, 100, 0, 0);
+        if(!apriv->pulseok) {
+            apriv->pulseok = pulse_init(apriv);
         }
         memset(abuffer,0,sizeof(abuffer));
-
         while(1) {
             alen=xplayer_API_prefillaudio(abuffer, sizeof(abuffer), plen);
             plen+=alen;
-            if(sipalsa && alen)
-                sipalsa_play(sipalsa, rate, channels, alen, (unsigned char*) abuffer);
+            if(apriv->pulseok && alen)
+                pulse_play(apriv, (unsigned char*) abuffer, alen);
             if(!alen)
                 break;
         }
         alen=0;
-        priv->run=1;
-        while(priv->run && sipalsa)
+        apriv->run=1;
+        while(apriv->run && apriv->pulseok)
         {
             alen=xplayer_API_getaudio(abuffer, sizeof(abuffer));
-            if(sipalsa && alen) {
-                sipalsa_play(sipalsa, rate, channels, alen, (unsigned char*) abuffer);
+            if(apriv->pulseok && alen) {
+                pulse_play(apriv, (unsigned char*) abuffer, alen);
             } else {
                 usleep(10000);
             }
         }
-        if(sipalsa)
-            sipalsa_close(sipalsa);
-        sipalsa=NULL;
-        priv->run=false;
+        if(apriv->pulseok) {
+            pulse_uninit(apriv, 1);
+            apriv->pulseok=0;
+        }
+        apriv->run=0;
     }
-
-
 
 };

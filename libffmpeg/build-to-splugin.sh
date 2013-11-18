@@ -57,7 +57,7 @@ if test "" == "$dest" ; then
     exit 1
 fi
 
-./configure --disable-yasm --disable-doc --disable-ffmpeg --disable-ffprobe --disable-ffserver --disable-dxva2 --enable-runtime-cpudetect --disable-muxers --disable-bsfs
+./configure --disable-yasm --enable-pic --disable-doc --disable-ffmpeg --disable-ffprobe --disable-ffserver --disable-dxva2 --enable-runtime-cpudetect --disable-muxers --disable-bsfs
 make
 if test ! $? == 0 ; then
     exit 1
