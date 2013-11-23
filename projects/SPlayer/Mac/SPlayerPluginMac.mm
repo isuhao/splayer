@@ -21,6 +21,7 @@
 
 #include "SPlayerPluginMac.h"
 #include "libxplayer.h"
+#include "OpenGL/gl.h"
 
 #include <pthread.h>
 #include <AudioToolbox/AudioToolbox.h>

@@ -20,7 +20,6 @@
 #include "../MediaPlayer.h"
 
 #include "SPlayerPluginMac.h"
-#include "iostream.h"
 #include "stdio.h"
 
 #include "libxplayer.h"
