@@ -1,6 +1,6 @@
 [Setup]
 AppName=SPlayer
-AppVersion=2.0.0
+AppVersion=2.0.1
 AppId=CaeSplayer
 AppPublisherURL=https://github.com/Cae-Engineering/splayer
 DefaultDirName={pf}\SPlayer
