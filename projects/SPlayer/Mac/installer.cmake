@@ -18,6 +18,7 @@ message(STATUS "Adding DMG installer for ${PROJECT_NAME}")
 add_custom_command(
     TARGET ${PROJECT_NAME}
     POST_BUILD
+    COMMENT {CMD_MV} {CMAKE_CURRENT_BINARY_DIR} 
     COMMENT "------------ CREATE DMG INSTALLER"
 
 	#if dmg_template already exists in the dir it assumes that we want 
@@ -44,7 +45,7 @@ add_custom_command(
     #Create the DMG
     #get rid of previously generated dmg (or leftover temp if it somehow was not removed)
     COMMAND ${CMD_RM} -f ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PLUGIN_NAME}.dmg
-    COMMAND ${CMD_RM} -f ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PLUGIN_NAME}-temp.dmg 
+    COMMAND ${CMD_RM} -f ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PLUGIN_NAME}-temp.dmg
 
     COMMAND ${CMD_HDIUTIL} create -fs HFS+ -srcfolder ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/dmg_template/ -volname "${INSTALLER_NAME}" -format UDRW ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PLUGIN_NAME}-temp.dmg
     COMMAND ${CMD_HDIUTIL} attach ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PLUGIN_NAME}-temp.dmg -noautoopen -quiet

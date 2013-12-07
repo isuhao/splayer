@@ -80,7 +80,24 @@ target_link_libraries(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/../../libffmpeg/lib/libavfilter.a
 )
 
+# Current output
+set(NPPBIN "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/np${PROJECT_NAME}.plugin")
 
+set(PBIN "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PROJECT_NAME}.plugin")
+
+
+# Fix np prefix issue:
+function(fixPrefix projectName pathToPlugin pathToPluginNoNp)
+    ADD_CUSTOM_COMMAND(
+        TARGET ${PROJECT_NAME}
+        POST_BUILD
+        COMMAND mv ${pathToPlugin}/Contents/MacOS/np${PROJECT_NAME} ${pathToPlugin}/Contents/MacOS/${PROJECT_NAME}
+        COMMAND mv ${pathToPlugin} ${pathToPluginNoNp}
+#COMMAND mv {pathToPlugin}/${projectName}.plugin mv {pathToPlugin}/${projectName}.plugin
+)
+endfunction()
+
+fixPrefix("${PROJECT_NAME}" "${NPPBIN}" "${PBIN}")
 
 # Copy plugin to Plug-Ins directory:
 function(releasePlugin projectName pathToPlugin releaseDirectory)
@@ -95,12 +112,9 @@ function(releasePlugin projectName pathToPlugin releaseDirectory)
 		)
 endfunction()
 
-# Current output
-set(PBIN "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PROJECT_NAME}.plugin")
-
 # Copy plugin to /Library/Internet Plug-Ins (all users)
 #releasePlugin("${PROJECT_NAME}" "${PBIN}" "/Library/Internet Plug-Ins")
 
 #create .dmg installer
-#INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/Mac/installer.cmake")
+INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/Mac/installer.cmake")
 

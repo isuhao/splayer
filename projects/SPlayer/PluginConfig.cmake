@@ -14,11 +14,11 @@
 
 set(PLUGIN_NAME "SPlayer")
 set(PLUGIN_PREFIX "SPlayer")
-set(COMPANY_NAME "FBDevTeam")
+set(COMPANY_NAME "CAE Engineering Kft.")
 
 # ActiveX constants:
 set(FBTYPELIB_NAME FireBreathWinLib)
-set(FBTYPELIB_DESC "SPlayer 1.0 Type Library")
+set(FBTYPELIB_DESC "SPlayer Type Library")
 set(IFBControl_DESC "SPlayer FBControl Interface")
 set(FBControl_DESC "SPlayer FBControl Class")
 set(IFBComJavascriptObject_DESC "SPlayer IComJavascriptObject Interface")
@@ -39,21 +39,21 @@ set(ACTIVEX_PROGID "FireBreath.SPlayer")
 set(MOZILLA_PLUGINID "@firebreath.googlecode.com/Firebreath SPlayer Plugin")
 
 # strings
-set(FBSTRING_CompanyName "FireBreath")
-set(FBSTRING_FileDescription "SPlayer Plugin for the FireBreath Project")
+set(FBSTRING_CompanyName "CAE Engineering Kft.")
+set(FBSTRING_FileDescription "SPlayer Video Player Plugin")
 set(FBSTRING_PLUGIN_VERSION "1.0.0")
-set(FBSTRING_LegalCopyright "Copyright 2009 Firebreath development team")
+set(FBSTRING_LegalCopyright "Copyright 2012-13 CAE Engineering Kft")
 set(FBSTRING_PluginFileName "npSPlayer.dll")
-set(FBSTRING_ProductName "FireBreath SPlayer Plugin")
+set(FBSTRING_ProductName "SPlayer Video Player Plugin")
 set(FBSTRING_FileExtents "")
-set(FBSTRING_PluginName "FireBreath SPlayer Plugin")
+set(FBSTRING_PluginName "SPlayer Video Player Plugin")
 set(FBSTRING_MIMEType "application/x-vnd.FBSPlayer")
 
 # mac settings
 set (FBMAC_USE_CARBON                    0)
 set (FBMAC_USE_COCOA                     0)
 set (FBMAC_USE_QUICKDRAW                 0)
-set (FBMAC_USE_COREGRAPHICS              1)
+set (FBMAC_USE_COREGRAPHICS              0)
 set (FBMAC_USE_COREANIMATION             1)
 set (FBMAC_USE_INVALIDATINGCOREANIMATION 0)
 
