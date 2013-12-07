@@ -1,0 +1,14 @@
+build/*
+libffmpeg/*.o
+libffmpeg/*.a
+libffmpeg/lib/*.a
+libffmpeg/afilter/*.o
+libffmpeg/config.h
+
+libffmpeg/configure.log
+
+libffmpeg/cpuinfo
+
+libffmpeg/debugview
+
+libffmpeg/ffmpeg_config.h

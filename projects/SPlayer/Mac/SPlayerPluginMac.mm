@@ -19,6 +19,7 @@
 #include "Mac/PluginWindowMacCG.h"
 #include "Mac/PluginWindowMacCA.h"
 
+#include <OpenGL/gl.h>
 #include "SPlayerPluginMac.h"
 #include "libxplayer.h"
 #include "OpenGL/gl.h"
