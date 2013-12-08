@@ -23,10 +23,11 @@
 #include "SPlayerPluginMac.h"
 #include "libxplayer.h"
 #include "OpenGL/gl.h"
+#include "SOIL.h"
 
 #include <pthread.h>
 #include <AudioToolbox/AudioToolbox.h>
-#import <AudioUnit/AudioUnit.h>
+#import  <AudioUnit/AudioUnit.h>
 
 @interface SPCAOpenGLLayer : CAOpenGLLayer {
     // define private variables
@@ -36,6 +37,8 @@
     int frame_w;
     int frame_h;
     GLuint g_textureID;
+    GLuint g_bgTex;
+    const char* path;
     
 }
 @end
@@ -55,12 +58,16 @@
 
 
 - (void)drawInCGLContext:(CGLContextObj)ctx pixelFormat:(CGLPixelFormatObj)pf forLayerTime:(CFTimeInterval)t displayTime:(const CVTimeStamp *)ts {
+    
     GLsizei width = CGRectGetWidth([self bounds]), height = CGRectGetHeight([self bounds]);
     
     static double ltime = 0;
     double stime = xplayer_clock();
 
     int drawframe = 0;
+    static unsigned char* bgdata;
+    static int bgw,bgh,bgc;
+
     
     if(width!=frame_w || height!=frame_h || !g_textureID)
     {
@@ -82,16 +89,26 @@
         g_textureID=0;
         glGenTextures( 1, &g_textureID );
         glBindTexture( GL_TEXTURE_2D, g_textureID );
+        if(g_bgTex)
+        {
+            glDeleteTextures( 1, &g_bgTex );
+        }
+        glGenTextures( 1, &g_bgTex );
+
     
         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
     
         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-        glColor4f(0.9, 0.3, 0.4, 1.00);
+
+        NSBundle * bundle = [NSBundle bundleWithIdentifier:@"com.FireBreath.SPlayer"];
+        path = [[bundle pathForResource:@"bg" ofType:@"png"] UTF8String];
+        //g_bgTex = SOIL_load_OGL_texture(path, SOIL_LOAD_AUTO, g_bgTex, SOIL_FLAG_MIPMAPS);
+        bgdata = SOIL_load_image(path,&bgw,&bgh, &bgc,0);
         NSLog(@"texture init\n");
         drawframe = 1;
-   }
+    }
     if(!xplayer_API_isnewimage(slotId)){
         while(true) {
             frame = NULL;
@@ -113,14 +130,12 @@
                 break;
             
         }
-        if(xplayer_API_getstatus(slotId) == 2 && 0){
-            glBegin(GL_QUADS);
-            glColor4f(0.9, 0.3, 0.4, 1.00);
-            glVertex3f(0,       0,      -1.0f);
-            glVertex3f(width,   0,      -1.0f);
-            glVertex3f(width,   height, -1.0f);
-            glVertex3f(0,       height, -1.0f);
-            glEnd();
+
+        // SPLASH SCREEN
+        if(xplayer_API_getstatus(slotId) == 2){
+            glTexImage2D( GL_TEXTURE_2D, 0, 3, bgw, bgh,
+                         0, GL_RGB, GL_UNSIGNED_BYTE, bgdata );
+            
         }
 
     }
@@ -156,8 +171,6 @@
                 glTexImage2D( GL_TEXTURE_2D, 0, 3, w, h,
                              0, GL_YCBCR_422_APPLE, GL_UNSIGNED_SHORT_8_8_APPLE, vdapict.data[0] );
                 CVPixelBufferUnlockBaseAddress(cvbuff, 0);
-             //   NSLog(@"belefutottE %d x %d\n",w,h);
-               // CVPixelBufferRelease(cvbuff);
                 drawframe = 1;
                 xplayer_API_vdaframedone(slotId);
             }
@@ -177,18 +190,15 @@
         else
         {
             
-            
-            
             frame = NULL;
             xplayer_API_getimage(slotId, &frame);
             
             if(frame)
             {
-   
 
                 glTexImage2D( GL_TEXTURE_2D, 0, 3, frame->width, frame->height,
                              0, GL_BGRA, GL_UNSIGNED_BYTE, frame->planes[0] );
-                NSLog(@"frame\n");
+                //NSLog(@"frame\n");
                 drawframe = 1;
                 xplayer_API_imagedone(slotId);
             }
@@ -204,12 +214,12 @@
             }
             
         }
-        
+
         
     }
- 
+    
     glBegin(GL_QUADS);
-    glColor4f(1,1,1,1);
+    glColor4f(1.0,1.0,1.0,1.0);
     glTexCoord2f(0.0, 0.0);
     glVertex3f(0,      0,      -1.0f);
     glTexCoord2f(1.0, 0.0);
@@ -220,18 +230,6 @@
     glVertex3f(0,       height, -1.0f);
     glEnd();
 
-    while(0) {
-        vda_frame = NULL;
-        xplayer_API_freeablevdaframe(slotId, &vda_frame);
-        if(vda_frame)
-        {
-            NSLog(@"free vda\n");
-            xplayer_API_freevdaframe(slotId, vda_frame);
-        }
-        else
-            break;
-    }
-   
     double  etime = xplayer_clock();
     if(etime > 0.0 && ltime > 0.0)
     {
@@ -431,148 +429,3 @@ bool SPlayerPluginMac::onWindowDetached(FB::DetachedEvent* evt, FB::PluginWindow
     xplayer_API_videoprocessdone(slotId);
     return SPlayerPlugin::onWindowDetached(evt,wnd);
 }
-
-bool SPlayerPluginMac::onDrawCG(FB::CoreGraphicsDraw *evt, FB::PluginWindowMacCG*)
-{
-    NSLog(@"drawCG\n");
-    FB::Rect bounds(evt->bounds);
-    
-    CGRect lbounds = CGRectMake(0, 0, bounds.right-bounds.left,bounds.bottom-bounds.top);
-    
-    CGContextRef context(evt->context);
-    
-    CGContextSaveGState(context);
-
-#ifdef DEBUG_DISPLAY
-    CGContextSelectFont (context, "Helvetica-Bold", 30, kCGEncodingMacRoman);
-    
-    CGContextSetCharacterSpacing (context, 10);
-    CGContextSetTextDrawingMode (context, kCGTextFillStroke);
-    
-    CGContextSetRGBFillColor (context, 0, 0, 0, 1);
-    CGContextSetRGBStrokeColor (context, 1, 1, 1, 1); 
-    char cbuff[32];
-    sprintf(cbuff, "%d, %d", playerId, slotId);
-#endif
-        
-    if(!xplayer_API_isnewimage(slotId)){      
-        while(true) {
-            frame = NULL;
-            xplayer_API_freeableimage(slotId, &frame);
-            if(frame) {
-                xplayer_API_freeimage(slotId, frame);
-            } else {
-                break;
-            }
-        }
-        while(1) {
-            vda_frame = NULL;
-            xplayer_API_freeablevdaframe(slotId, &vda_frame);
-            if(vda_frame) 
-                xplayer_API_freevdaframe(slotId, vda_frame);
-            else 
-                break;
-            
-        }        
-        if(xplayer_API_getstatus(slotId) == 0){
-            CGContextTranslateCTM(context, 0, lbounds.size.height);
-            CGContextScaleCTM(context, 1.0, -1.0);
-            CGContextDrawImage(context, lbounds, bg);
-#ifdef DEBUG_DISPLAY
-            CGContextShowTextAtPoint (context, 20, 20, cbuff, strlen(cbuff));
-#endif
-            CGContextRestoreGState(context);
-        }
-        return true;
-    }
-    if( xplayer_API_isvda(slotId) )
-    {
-        xplayer_API_getvdaframe(slotId, &vda_frame);
-        if(vda_frame){
-//            CVPixelBufferRef cvbuff = (CVPixelBufferRef)xplayer_API_vdaframe2cvbuffer(slotId, vda_frame);
-            
-              xplayer_API_vdaframedone(slotId);
-        }
-        
-        // HERE 
-        
-        
-        while(1) {
-            vda_frame = NULL;
-            xplayer_API_freeablevdaframe(slotId, &vda_frame);
-            if(vda_frame) 
-                xplayer_API_freevdaframe(slotId, vda_frame);
-            else 
-                break;
-        }
-        
-
-        
-    }
-    else
-    {
-        
-        static const size_t kComponentsPerPixel = 4;
-        static const size_t kBitsPerComponent = sizeof(unsigned char) * 8;
-        
-        static const CGColorSpaceRef rgb = CGColorSpaceCreateDeviceRGB();
-        
-        static double last_cpts = -1;
-        
-        double cpts = xplayer_API_getrealpts(slotId);
-        if(1)
-        {      
-//            CGColorRef bgColor = CGColorCreateGenericRGB(0.0, 0.0, 0.0, 0.05);
-//            CGContextSetFillColorWithColor(context, bgColor);
-//            CGContextFillRect(context, lbounds);
-//            
-//            CGColorRelease(bgColor);
-            last_cpts = cpts;
-            
-            CGContextTranslateCTM(context, 0.0, lbounds.size.height);
-            CGContextScaleCTM(context, 1.0, -1.0);
-            
-            frame = NULL;
-            xplayer_API_getimage(slotId, &frame);
-            
-            if(frame)
-            {
-                CGDataProviderRef provider = 
-                CGDataProviderCreateWithData(NULL, frame->planes[0], frame->height*frame->width*kComponentsPerPixel, NULL);
-                
-                CGImageRef imageRef = 
-                CGImageCreate(frame->width, frame->height, kBitsPerComponent, 
-                              kBitsPerComponent * kComponentsPerPixel, 
-                              kComponentsPerPixel * frame->width, 
-                              rgb, 
-                              kCGBitmapByteOrder32Little | kCGImageAlphaFirst, 
-                              provider, NULL, true, kCGRenderingIntentDefault);
-                
-                CGContextDrawImage(context, lbounds, imageRef);
-                CGImageRelease(imageRef);
-                CGDataProviderRelease(provider);
-                xplayer_API_imagedone(slotId);
-            }
-        }
-        while(true) {
-            frame = NULL;
-            xplayer_API_freeableimage(slotId, &frame);
-            if(frame) {
-                xplayer_API_freeimage(slotId, frame);
-            } else {
-                break;
-            }
-        }
-        
-    }
-#ifdef DEBUG_DISPLAY    
-    CGContextSetTextMatrix(context, CGAffineTransformMake(1.0,0.0, 0.0, -1.0, 0.0, 0.0));
-    CGContextShowTextAtPoint(context, 20, lbounds.size.height - 20, cbuff, strlen(cbuff));
-#endif
-    
-    CGContextRestoreGState(context);
-    
-    return true; 
-}
-
-

@@ -59,6 +59,7 @@ find_library(VDA_FRAMEWORK VideoDecodeAcceleration)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../libffmpeg)
 include_directories(/Developer/Extras/CoreAudio/PublicUtility)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../SOIL)
 
 # add library dependencies here; leave ${PLUGIN_INTERNAL_DEPS} there unless you know what you're doing!
 target_link_libraries(${PROJECT_NAME}
@@ -78,6 +79,7 @@ target_link_libraries(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/../../libffmpeg/lib/libswresample.a
     ${CMAKE_CURRENT_SOURCE_DIR}/../../libffmpeg/lib/libavutil.a
     ${CMAKE_CURRENT_SOURCE_DIR}/../../libffmpeg/lib/libavfilter.a
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../SOIL/libSOIL.a
 )
 
 # Current output
@@ -91,6 +93,7 @@ function(fixPrefix projectName pathToPlugin pathToPluginNoNp)
     ADD_CUSTOM_COMMAND(
         TARGET ${PROJECT_NAME}
         POST_BUILD
+        COMMAND rm -fr ${pathToPluginNoNp}
         COMMAND mv ${pathToPlugin}/Contents/MacOS/np${PROJECT_NAME} ${pathToPlugin}/Contents/MacOS/${PROJECT_NAME}
         COMMAND mv ${pathToPlugin} ${pathToPluginNoNp}
 #COMMAND mv {pathToPlugin}/${projectName}.plugin mv {pathToPlugin}/${projectName}.plugin

@@ -50,7 +50,6 @@ public:
     FB::PluginWindowMac* pluginWindow;
     
 protected:
-    bool onDrawCG(FB::CoreGraphicsDraw *evt, FB::PluginWindowMacCG*);
     void DrawCoreGraphics(CGContextRef context, const FB::Rect& bounds, const FB::Rect& clip);
 
 private:
