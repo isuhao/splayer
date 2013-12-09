@@ -40,6 +40,7 @@ public:
     
         EVENTTYPE_CASE(FB::AttachedEvent, onWindowAttached, FB::PluginWindowMac)
         EVENTTYPE_CASE(FB::DetachedEvent, onWindowDetached, FB::PluginWindowMac)
+        EVENTTYPE_CASE(FB::MouseDownEvent, onMouseDown,     FB::PluginWindowMac)
         PLUGIN_EVENT_MAP_CASCADE(SPlayerPlugin)
     END_PLUGIN_EVENT_MAP()
 

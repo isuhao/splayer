@@ -134,7 +134,6 @@ public:
     bool SetResetPropertiesOnReload(const FB::variant&);        /// reset plugin setting when load new movie (bool)
     bool GetResetPropertiesOnReload();                          /// get reset plugin settings flag
 
-
     //about box/context menu related
     bool onMouseDown(FB::MouseDownEvent * evt);
     #ifdef FB_WIN

@@ -41,6 +41,7 @@ __strong static MyClass * abox = 0;
    
 }//closebox
 
+
 - (void) openBox
 {
     NSRect frame = NSMakeRect(0, 0, 300, 300);
@@ -98,7 +99,8 @@ __strong static MyClass * abox = 0;
     
     theMenu = [[[NSMenu alloc] initWithTitle:@"Contextual Menu"] autorelease];
     [theMenu insertItemWithTitle:@"Learningspace SPlayer" action:@selector(nope:) keyEquivalent:@"" atIndex:0];
-    [theMenu insertItemWithTitle:@"---------------" action:@selector(nope:) keyEquivalent:@"" atIndex:1];
+    [theMenu insertItem:[NSMenuItem separatorItem] atIndex:1];
+    //[theMenu insertItemWithTitle:@"---------------" action:@selector(nope:) keyEquivalent:@"" atIndex:1];
     item = [theMenu insertItemWithTitle:@"About" action:@selector(openBox)                   keyEquivalent:@"" atIndex:2 ];
     
     [item setTarget:self ];

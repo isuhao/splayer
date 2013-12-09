@@ -118,14 +118,17 @@ void MediaPlayer::setWindow(FB::PluginWindow* pluginWindow)
 
 bool MediaPlayer::onMouseDown(FB::MouseDownEvent * evt)
 {
+
+    FBLOG_INFO("","Mouse click event\n");
     if (m_context->wnd == 0) {return false;}
     
-    if (evt->m_Btn == FB::MouseDownEvent::MouseButton_Right
+    if (evt->m_Btn == FB::MouseDownEvent::MouseButton_Middle
         //|| evt->m_Btn == FB::MouseDownEvent::MouseButton_Left
            
         )
     {
-        
+        FBLOG_INFO("","Left mouse click event\n");
+       
         
         createMenu();
         
