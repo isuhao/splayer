@@ -106,6 +106,8 @@
         path = [[bundle pathForResource:@"bg" ofType:@"png"] UTF8String];
         //g_bgTex = SOIL_load_OGL_texture(path, SOIL_LOAD_AUTO, g_bgTex, SOIL_FLAG_MIPMAPS);
         bgdata = SOIL_load_image(path,&bgw,&bgh, &bgc,0);
+        
+        
         NSLog(@"texture init\n");
         drawframe = 1;
     }
@@ -132,7 +134,7 @@
         }
 
         // SPLASH SCREEN
-        if(xplayer_API_getstatus(slotId) == 2){
+        if(!(xplayer_API_getstatus(slotId)&STATUS_PLAYER_OPENED)){//xplayer_API_getstatus(slotId) == 2){
             glTexImage2D( GL_TEXTURE_2D, 0, 3, bgw, bgh,
                          0, GL_RGB, GL_UNSIGNED_BYTE, bgdata );
             

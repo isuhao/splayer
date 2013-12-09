@@ -1,3 +1,3 @@
 #pragma once
 
-#define SPLAYER_VERSION ("2.0.1")
+#define SPLAYER_VERSION ("2.0.2")
