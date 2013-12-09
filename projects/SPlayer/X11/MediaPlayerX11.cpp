@@ -272,7 +272,18 @@ fprintf(stderr,"XXXXXXXXX setWindow done: %d\n",slotId);
 }
 
 bool MediaPlayer::onMouseDown(FB::MouseDownEvent * evt)
-{ return false; }
+{
+    if (m_context->hwnd == 0)
+    {
+        return false;
+    }
+    if (evt->m_Btn ==  FB::MouseDownEvent::MouseButton_Right)
+    {
+//        openAboutPopup(m_context->hwnd); 
+        return true;
+    }
+    return false;
+}
 
 bool MediaPlayer::setloglevel(int logLevel)
 {
@@ -711,6 +722,7 @@ fail:
     void* video_process(void * data) {
         video_priv_t* priv = (video_priv_t*)data;
         mp_image_t* img = NULL;
+        mp_image_t* bgimg = NULL;
         mp_image_t* frame = NULL;
         int w=0;
         int h=0;
@@ -718,6 +730,7 @@ fail:
         int winh = 480;
         int owinw = 0;
         int owinh = 0;
+        int res;
 
         double stime=0.0;
         double etime=0.0;
@@ -768,6 +781,8 @@ fail:
 #ifdef DEBUGPRINT
         fprintf(stderr,"************** plugin video process start: %d\n",priv->slot);
 #endif
+
+        xplayer_API_getresourceimage("bg", &bgimg);
 
         g_pDisplay = XOpenDisplay( NULL );
 
@@ -903,11 +918,15 @@ fprintf(stderr,"setWindow openGL inited. slot: %d window: %x\n",priv->slot,g_win
 
 
             setst(priv->slot, 3);
-            if(xplayer_API_isnewimage(priv->slot))
+            if((res=xplayer_API_isnewimage(priv->slot)) || (bgimg && !(xplayer_API_getstatus(priv->slot)&STATUS_PLAYER_OPENED)))
             {
-                setst(priv->slot, 4);
-                xplayer_API_getimage(priv->slot, &img);
-                setst(priv->slot, 5);
+                if(res) {
+                    setst(priv->slot, 4);
+                    xplayer_API_getimage(priv->slot, &img);
+                    setst(priv->slot, 5);
+                } else {
+                    img=bgimg;
+                }
 
                 if(img) {
                     w=img->w;
@@ -974,12 +993,13 @@ fprintf(stderr,"Load texture. slot: %d img: %p\n",priv->slot,img);
                         img->planes[1] = img->planes[2];
                         img->planes[2] = tmp;
                     }
-                    xplayer_API_imagedone(priv->slot);
+                    if(res)
+                        xplayer_API_imagedone(priv->slot);
                 }
             }
 
             setst(priv->slot, 8);
-            while(true) {
+            while(res) {
                 frame = NULL;
                 setst(priv->slot, 9);
                 xplayer_API_freeableimage(priv->slot, &frame);
@@ -1014,6 +1034,8 @@ fprintf(stderr,"Load texture. slot: %d img: %p\n",priv->slot,img);
         setst(priv->slot, 18);
         xplayer_API_videoprocessdone(priv->slot);
         XCloseDisplay(g_pDisplay);
+        if(bgimg)
+            free_mp_image(bgimg);
         priv->run=0;
         setst(priv->slot, 19);
         if(dmem && priv->slot<MAX_DEBUG_SLOT) {

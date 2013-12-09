@@ -461,6 +461,8 @@ void            xplayer_API_freestatusline(char* line);
 
 void            slog(const char *format_str, ...);
 
+int             xplayer_API_getresourceimage(const char* name, mp_image_t** img);
+
 
 #ifdef __cplusplus
 };

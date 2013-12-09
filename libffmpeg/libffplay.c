@@ -2569,6 +2569,7 @@ typedef struct VideoState {
     double buffer_time;
     int flushflag;
     int realtime;
+    int filesystem;
 
     int valid_delay;
     double seek_pts;
@@ -6474,6 +6475,8 @@ static void* read_thread(void *arg)
     ic->interrupt_callback.callback = decode_interrupt_cb;
     is->slotinfo->status|=STATUS_PLAYER_CONNECT;
     printdebugbuffer(is->slotinfo->slotid, "Open: '%s'", is->filename);
+    if(!strstr(is->filename,"://") || !strncmp(is->filename,"file://",7))
+        is->filesystem=1;
 #ifdef THREAD_DEBUG
     av_log(NULL, AV_LOG_DEBUG,"[debug] read_thread(): open stream: %d pass1 '%s' \n",is->slotinfo->slotid,is->filename);
 #endif
@@ -6954,6 +6957,9 @@ fprintf(stderr,"Slot: %d aqsize+videoq+subq = %d > MAX_Q %d [%d] || (aqsize %d >
                     av_log(NULL,DEBUG_FLAG_LOG_LEVEL,"Slot: %d Aftrer seek OK\n",is->slotinfo->slotid);
                 }
                 is->slotinfo->pauseseekreq=0;
+            }
+            if(is->seek_req==5 && is->filesystem) {
+                is->seek_req=0;
             }
             if(is->seek_req==25) {
                 is->seek_req=1;
