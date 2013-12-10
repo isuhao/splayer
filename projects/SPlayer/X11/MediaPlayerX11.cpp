@@ -17,8 +17,8 @@
 #include <GL/glu.h>
 
 #include <pulse/pulseaudio.h>
-
 #include "libxplayer.h"
+#include "../Version.h"
 
 #include "debug.h"
 
@@ -271,6 +271,89 @@ fprintf(stderr,"XXXXXXXXX setWindow done: %d\n",slotId);
 #endif
 }
 
+static void openAboutWindowCallback(GtkWidget *menuitem, gpointer userdata)
+{
+    MediaPlayer* mp = reinterpret_cast<MediaPlayer*>(userdata);
+    if(mp)
+    {
+        mp->openAboutWindow(menuitem);
+    }
+}
+
+void MediaPlayer::openAboutWindow(GtkWidget *menuitem)
+{
+    char buf[8192];
+    GtkWidget *dialog, *label, *logo, *hbox;
+    GdkPixbuf * image;
+    mp_image_t* mpi = NULL;
+    unsigned char* src;
+    guchar *dst;
+    int y, sstride, dstride, psize;
+    GtkWindow* win = NULL;
+
+    FB::PluginWindowX11* wnd = reinterpret_cast<FB::PluginWindowX11*>(m_context->win);
+    if(wnd)
+    {
+        win = GTK_WINDOW(gtk_widget_get_parent(wnd->getWidget()));
+    }
+    dialog = gtk_dialog_new_with_buttons("About SPlayer",
+                                         win,
+                                         GTK_DIALOG_DESTROY_WITH_PARENT,
+                                         GTK_STOCK_OK,
+                                         GTK_RESPONSE_NONE,
+                                         NULL);
+    g_signal_connect_swapped(dialog,
+                             "response",
+                             G_CALLBACK (gtk_widget_destroy),
+                             dialog);
+    hbox=gtk_hbox_new(false,5);
+    xplayer_API_getresourceimage("caelogo", &mpi);
+    if(mpi)
+    {
+        image = gdk_pixbuf_new(GDK_COLORSPACE_RGB, false, 8, mpi->width, mpi->height);
+        src=mpi->planes[0];
+        dst=gdk_pixbuf_get_pixels(image);
+        sstride=mpi->stride[0];
+        dstride=gdk_pixbuf_get_rowstride(image);
+        psize=gdk_pixbuf_get_n_channels(image);
+        for(y=0;y<mpi->height;y++)
+        {
+            memcpy(dst,src,mpi->width*psize);
+            src+=sstride;
+            dst+=dstride;
+        }
+        logo = gtk_image_new_from_pixbuf(image);
+        gtk_container_add(GTK_CONTAINER (hbox), logo);
+    }
+    snprintf(buf,sizeof(buf),"SPlayer %s by CAE 2013",SPLAYER_VERSION);
+    label = gtk_label_new(buf);
+    gtk_container_add(GTK_CONTAINER (hbox), label);
+    gtk_container_add(GTK_CONTAINER (GTK_DIALOG(dialog)->vbox), hbox);
+
+    gtk_widget_show_all(dialog);
+
+    if(mpi)
+        free_mp_image(mpi);
+}
+
+void MediaPlayer::openPopupMenu()
+{
+    GtkWidget *menu;
+    GtkWidget *menuitem;
+    GtkWidget *label;
+
+    menu = gtk_menu_new();
+    menuitem = gtk_menu_item_new_with_mnemonic("Learningspace SPlayer");
+    gtk_widget_set_sensitive(menuitem, false);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+    menuitem = gtk_menu_item_new_with_label("About");
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+    g_signal_connect(menuitem, "activate", (GCallback) openAboutWindowCallback, this);
+    gtk_widget_show_all(menu);
+    gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, 0, 0);
+}
+
 bool MediaPlayer::onMouseDown(FB::MouseDownEvent * evt)
 {
     if (m_context->hwnd == 0)
@@ -279,7 +362,7 @@ bool MediaPlayer::onMouseDown(FB::MouseDownEvent * evt)
     }
     if (evt->m_Btn ==  FB::MouseDownEvent::MouseButton_Right)
     {
-//        openAboutPopup(m_context->hwnd); 
+        openPopupMenu();
         return true;
     }
     return false;

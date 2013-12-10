@@ -100,6 +100,7 @@ int xplayer_API_getresourceimage(const char* name, mp_image_t** mpi)
     }
     memimage.data=resources[i].data;
     memimage.len=resources[i].size;
+    memimage.pos=0;
     if(!memimage.data || !memimage.len) {
         return -1;
     }

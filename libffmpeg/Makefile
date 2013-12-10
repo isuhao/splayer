@@ -1,6 +1,6 @@
 CC=gcc
 LD=gcc
-CFLAGS = -g -Wall -I. -I../FFmpeg -DCONFIG_FASTMEMCPY=1
+CFLAGS = -g -Wall -I. -I../FFmpeg -DCONFIG_FASTMEMCPY=1 -fPIC
 FFCFLAGS = -I../FFmpeg $(shell sdl-config --cflags)
 LDFLAGS =
 LIBS = -lz -lm $(shell sdl-config --libs) -lSDL_ttf

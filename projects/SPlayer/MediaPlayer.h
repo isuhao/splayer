@@ -25,6 +25,9 @@ Copyright 2009 Georg Fritzsche,
 #ifdef FB_WIN
 #include "PluginEvents/WindowsEvent.h"
 #endif
+#ifdef FB_X11
+#include "X11/PluginWindowX11.h"
+#endif
 
 #include "libxplayer.h"
 
@@ -88,6 +91,10 @@ public:
 
     #ifdef FB_WIN
         bool onWindowsEvent(FB::WindowsEvent* evt, FB::PluginWindow* win);
+    #endif
+    #ifdef FB_X11
+        void openPopupMenu();
+        void openAboutWindow(GtkWidget *menuitem);
     #endif
 
     int playerId;
