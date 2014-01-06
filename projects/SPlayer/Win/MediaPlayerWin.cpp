@@ -39,6 +39,7 @@ Copyright 2009 Georg Fritzsche,
 #include "D3Drender.h"
 
 #include "aboutBox.h"
+#include "debugBox.h"
 
 #include "winres.h"
 
@@ -133,6 +134,8 @@ MediaPlayer::~MediaPlayer()
     slog("dtor context->run %d \n", m_context->run);
   
     slog("dtor slot:%d \n", slotId);
+
+    destroyDebugBox(slotId);
 }//dtor
 
 
@@ -183,9 +186,11 @@ static void openAboutPopup(HWND hwnd)
         GetCursorPos( &cp );
 
             InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, 2, L"About");
-            InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, 3, L"---------------------");
-            InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, 1, L"Learningspace SPlayer");
-
+            InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING | MF_DISABLED, 3, L"---------------------");
+            InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING | MF_DISABLED, 1, L"Learningspace SPlayer");
+            #if DEBUG
+              InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, 4, L"Debug");
+            #endif
             TrackPopupMenu(hPopupMenu, TPM_BOTTOMALIGN | TPM_LEFTALIGN, cp.x, cp.y, 0, hwnd, NULL);
         //note: trackpopupmenu takes care of deleting the popupmenu after its no longer needed
         //(if its assigned to a window that is)
@@ -217,13 +222,25 @@ bool MediaPlayer::onWindowsEvent(FB::WindowsEvent* evt, FB::PluginWindow * win)
     
     //windows even handling is needed for  WM_COMMAND (that is how the popup menu sends commands)
 
-    if (evt->uMsg == WM_COMMAND && LOWORD(evt->wParam) == 2)
+    if (evt->uMsg == WM_COMMAND)
     {
-        //MessageBox(m_context->hwnd, L"Made by CAE", L"About", MB_OK);
+        if (LOWORD(evt->wParam) == 4)
+        {
+            makeDebugBox(m_context->hwnd, slotId);
+          return true;
+        }//endif2
 
-        showCaeAboutBox(m_context->hwnd);
 
-        return true;
+        if (LOWORD(evt->wParam) == 2)
+        {
+            //MessageBox(m_context->hwnd, L"Made by CAE", L"About", MB_OK);
+            std::string surl;
+            surl = "";        
+            showCaeAboutBox(m_context->hwnd, surl);
+            return true;
+        }//endif2
+
+        return false;
     }//endif
 
 

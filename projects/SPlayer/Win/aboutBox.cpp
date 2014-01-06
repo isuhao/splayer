@@ -164,7 +164,7 @@ static LRESULT DisplayMyMessage(HINSTANCE hinst, HWND hwndOwner, LPSTR lpszMessa
 }//dialogtemp
 
 
-void showCaeAboutBox(HWND hWnd)
+void showCaeAboutBox(HWND hWnd, std::string extra)
 {
   if (hWnd == NULL) { return; }
 
@@ -172,7 +172,7 @@ void showCaeAboutBox(HWND hWnd)
   std::string aboutStr;
 
   splayerVer = SPLAYER_VERSION;
-  aboutStr = "SPlayer " + splayerVer + " by  CAE 2013 ";
+  aboutStr = "SPlayer " + splayerVer + " by  CAE 2013 " + extra;
   LPSTR s = const_cast<char *>(aboutStr.c_str());
 
   DisplayMyMessage(GetModuleHandle(NULL), hWnd, s);
