@@ -41,7 +41,7 @@ set(MOZILLA_PLUGINID "@firebreath.googlecode.com/Firebreath SPlayer Plugin")
 # strings
 set(FBSTRING_CompanyName "CAE Engineering Kft.")
 set(FBSTRING_FileDescription "SPlayer Video Player Plugin")
-set(FBSTRING_PLUGIN_VERSION "2.0.2")
+set(FBSTRING_PLUGIN_VERSION "2.0.3")
 set(FBSTRING_LegalCopyright "Copyright 2012-13 CAE Engineering Kft")
 set(FBSTRING_PluginFileName "npSPlayer.dll")
 set(FBSTRING_ProductName "SPlayer Video Player Plugin")

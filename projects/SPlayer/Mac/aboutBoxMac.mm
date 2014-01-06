@@ -14,6 +14,7 @@
 
 @property (strong) NSWindow * mwin;
 @property (strong) NSMenu * theMenu;
+@property (strong) NSButton * bn;
 
 
 - (void) openBox;
@@ -23,8 +24,6 @@
 @end
 
 
-
-
 __strong static MyClass * abox = 0;
 
 
@@ -32,27 +31,40 @@ __strong static MyClass * abox = 0;
 
 @synthesize mwin;
 @synthesize theMenu;
+@synthesize bn;
 
 
 - (void) closeBox
 {
-    
     [NSApp abortModal];
-   
-}//closebox
+
+}
+
+- (void) closeClicked:(NSNotification *)notification
+{
+ 
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    [NSApp abortModal];
+
+    NSLog(@"Closed");
+    
+}
 
 
 - (void) openBox
 {
-    NSRect frame = NSMakeRect(0, 0, 300, 300);
-    mwin  = [[[NSWindow alloc] initWithContentRect:frame
-                                        styleMask:NSTitledWindowMask
-                                          backing:NSBackingStoreBuffered
-                                            defer:NO] autorelease];
-    
-    
-    NSButton * bn;
-    bn = [[[NSButton alloc] initWithFrame:NSMakeRect(10, 10, 100, 20) ] autorelease];
+    NSRect frame = NSMakeRect(0, 0, 300, 140);
+    mwin  = [[[[NSWindow alloc] initWithContentRect:frame
+                                         styleMask:NSClosableWindowMask |NSTitledWindowMask
+                                           backing:NSBackingStoreBuffered
+                                             defer:NO]retain] autorelease];
+
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(closeClicked:)
+                                                 name:NSWindowWillCloseNotification
+                                               object:mwin];
+ 
+    /*bn = [[[NSButton alloc] initWithFrame:NSMakeRect(10, 10, 100, 20) ] autorelease];
     
     [bn setButtonType:NSMomentaryPushInButton];
     [bn setTitle:@"Ok"];
@@ -60,21 +72,19 @@ __strong static MyClass * abox = 0;
     [bn setAction:@selector(closeBox)];
     
     [[mwin contentView] addSubview:bn];
-
-
-    NSBundle * splayerBundle = [NSBundle bundleWithIdentifier: @"com.FireBreath.SPlayer"];
-    NSImage * image = [splayerBundle imageForResource: @"caelogo.png"]; //do not release or autorelease
+*/
     
+    NSBundle *splayerBundle = [NSBundle bundleWithIdentifier: @"com.FireBreath.SPlayer"];
+    NSImage *image = [splayerBundle imageForResource: @"caelogo.png"]; //do not release or autorelease
     
-    NSImageView * iview = [[[NSImageView alloc] initWithFrame:NSMakeRect(10,100,140,140)] autorelease] ;
+    NSImageView * iview = [[[NSImageView alloc] initWithFrame:NSMakeRect(10,20,140,100)] autorelease] ;
     
     [iview setImage:image];
     
     [[mwin contentView] addSubview:iview];
     
-    
     NSTextField * field;
-    field = [[[NSTextField alloc] initWithFrame:NSMakeRect(160, 100, 100, 100)]autorelease];
+    field = [[[NSTextField alloc] initWithFrame:NSMakeRect(160, 20, 100, 60)]autorelease];
     [field setSelectable:false];
     [field setEditable:false];
     [field setBezeled:false];
@@ -87,9 +97,7 @@ __strong static MyClass * abox = 0;
     [field setStringValue:[NSString stringWithUTF8String:aboutStr.c_str()]];
     [[mwin contentView] addSubview:field];
     
-    
     [NSApp runModalForWindow:mwin];
-   
 }//openbox
 
 
@@ -100,25 +108,18 @@ __strong static MyClass * abox = 0;
     theMenu = [[[NSMenu alloc] initWithTitle:@"Contextual Menu"] autorelease];
     [theMenu insertItemWithTitle:@"Learningspace SPlayer" action:@selector(nope:) keyEquivalent:@"" atIndex:0];
     [theMenu insertItem:[NSMenuItem separatorItem] atIndex:1];
-    //[theMenu insertItemWithTitle:@"---------------" action:@selector(nope:) keyEquivalent:@"" atIndex:1];
     item = [theMenu insertItemWithTitle:@"About" action:@selector(openBox)                   keyEquivalent:@"" atIndex:2 ];
     
     [item setTarget:self ];
     
-    
     [theMenu popUpMenuPositioningItem:nil atLocation:[NSEvent mouseLocation] inView:nil];
 
-
-
 }//createmenu
-
 @end
-
 
 
 void createMenu(void)
 {
-    
         abox = 0;
         abox = [[MyClass alloc] autorelease];
     
